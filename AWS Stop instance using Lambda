@@ -1,0 +1,66 @@
+#Script Author:- FArhan Ali
+# Email id:- farhan.ali@citrix.com
+# Python Script
+#Description:- This function is to stop all the running instance after 7 pm everyday to reduce cost prices
+# This will not stop instances which contains "cts" tag. Will log all events and instances stop in cloudwatch
+#Date:- 23/07/2018
+import boto3
+import logging
+import re
+
+#setup simple logging for INFO
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+#define the connection
+#ec2 = boto3.resource('ec2')
+conn = boto3.client('ec2')
+
+def lambda_handler(event, context):
+    # Using filter to fetch all the running instance.
+	filters = [
+        {
+            'Name': 'instance-state-name', 
+            'Values': ['running']
+        }
+	]
+	#Getting List of all the available region
+	regions = conn.describe_regions()
+	length=len(regions["Regions"])
+	# In this for loop we are fetching each region and stopping the running instance
+	for i in range(0,length):
+		region=(regions["Regions"][i]["RegionName"])
+		print "Name of Present Region: ", region
+		ec2=boto3.resource('ec2',region_name=region)
+		#filter the instances to find running instance
+		instances = ec2.instances.filter(Filters=filters)
+		#New code
+		#Checking if instance contains cts tag then ignore it from being stopped
+		RunningInstances=[]
+		RunningInstancesWithCTS=[]
+		for instance in instances:
+			if instance.tags is None:
+				RunningInstances.append(instance.id)
+			elif re.search("cts",instance.tags[0]['Value']):
+				RunningInstancesWithCTS.append(instance.id)
+			else:	
+				RunningInstances.append(instance.id)
+ 
+		#locate all running instances #Old code where all used to be stopped
+		#RunningInstances = [instance.id for instance in instances]
+		
+		#Printing all the CTS instances which are not stopped for Debugging purpose
+		#make sure there are CTS instance running
+		if len(RunningInstancesWithCTS) > 0:
+			print" Found Following running instance with CTS Tag hence not stopping: ",RunningInstancesWithCTS
+    
+		#make sure there are actually instances to shut down. 
+		if len(RunningInstances) > 0:
+		    
+			#print the instances for logging purposes
+			print "Found Following running instance to be STOPPED: ", RunningInstances
+			#perform the shutdown
+			shuttingDown = ec2.instances.filter(InstanceIds=RunningInstances).stop()
+			print shuttingDown
+		else:
+			print "No RunningInstances Found in the Region"
