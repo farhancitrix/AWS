@@ -38,15 +38,17 @@ def lambda_handler(event, context):
 		#Checking if instance contains cts tag then ignore it from being stopped
 		RunningInstances=[]
 		RunningInstancesWithCTS=[]
+		#For loop below is only used if you want specific instance to not be stopped if you want all instance to be
+		# stopped then remove below for loop
 		for instance in instances:
-			if instance.tags is None:
+			if instance.tags is None:  #instance tag could be "None" as well so storing that
 				RunningInstances.append(instance.id)
-			elif re.search("cts",instance.tags[0]['Value']):
+			elif re.search("cts",instance.tags[0]['Value']): #if cts is present store in cts list
 				RunningInstancesWithCTS.append(instance.id)
 			else:	
-				RunningInstances.append(instance.id)
+				RunningInstances.append(instance.id) #if doesn't cts but some other tag then store in runnign list
  
-		#locate all running instances #Old code where all used to be stopped
+		#locate all running instances #Old code where all used to be stopped then uncomment this
 		#RunningInstances = [instance.id for instance in instances]
 		
 		#Printing all the CTS instances which are not stopped for Debugging purpose
